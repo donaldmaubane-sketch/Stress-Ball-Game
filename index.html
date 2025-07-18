@@ -1,154 +1,155 @@
-<!-- Replace your script tag with this full version -->
 <script>
-const gameArea = document.getElementById("gameArea");
-const ball = document.getElementById("ball");
-const scoreBoard = document.getElementById("scoreBoard");
-const gameOverText = document.getElementById("gameOver");
+window.onload = function () {
+  const gameArea = document.getElementById("gameArea");
+  const ball = document.getElementById("ball");
+  const scoreBoard = document.getElementById("scoreBoard");
+  const gameOverText = document.getElementById("gameOver");
 
-let ballY = 200, velocity = 0, gravity = 0.5;
-let score = 0, highScore = localStorage.getItem("highScore") || 0;
-let isGameOver = false;
-let obstacles = [], boosts = [];
-let obstacleSpeed = 4;
+  let ballY = 200, velocity = 0, gravity = 0.5;
+  let score = 0, highScore = localStorage.getItem("highScore") || 0;
+  let isGameOver = false;
+  let obstacles = [], boosts = [];
+  let obstacleSpeed = 4;
 
-function updateBall() {
-  if (isGameOver) return;
-  velocity += gravity;
-  ballY += velocity;
+  function updateBall() {
+    if (isGameOver) return;
+    velocity += gravity;
+    ballY += velocity;
 
-  if (ballY > gameArea.clientHeight - ball.offsetHeight) {
-    endGame();
-    return;
+    if (ballY > gameArea.clientHeight - ball.offsetHeight) {
+      endGame();
+      return;
+    }
+
+    if (ballY < 0) {
+      ballY = 0;
+      velocity = 0;
+    }
+
+    ball.style.top = ballY + "px";
   }
 
-  if (ballY < 0) {
-    ballY = 0;
+  function createObstacle() {
+    const obstacle = document.createElement("div");
+    obstacle.classList.add("obstacle");
+    obstacle.style.top = Math.floor(Math.random() * (gameArea.clientHeight - 80)) + "px";
+    obstacle.style.left = gameArea.clientWidth + "px";
+    gameArea.appendChild(obstacle);
+    obstacles.push(obstacle);
+  }
+
+  function createBoost() {
+    const boost = document.createElement("div");
+    boost.classList.add("obstacle");
+    boost.style.width = "30px";
+    boost.style.height = "30px";
+    boost.style.background = "#4caf50";
+    boost.style.borderRadius = "50%";
+    boost.style.top = Math.floor(Math.random() * (gameArea.clientHeight - 50)) + "px";
+    boost.style.left = gameArea.clientWidth + "px";
+    gameArea.appendChild(boost);
+    boosts.push(boost);
+  }
+
+  function updateObstacles() {
+    obstacles.forEach((obs, i) => {
+      let x = parseInt(obs.style.left);
+      x -= obstacleSpeed;
+      obs.style.left = x + "px";
+
+      const obsRect = obs.getBoundingClientRect();
+      const ballRect = ball.getBoundingClientRect();
+      if (
+        obsRect.left < ballRect.right &&
+        obsRect.right > ballRect.left &&
+        obsRect.top < ballRect.bottom &&
+        obsRect.bottom > ballRect.top
+      ) endGame();
+
+      if (x < -50) {
+        obs.remove();
+        obstacles.splice(i, 1);
+        score++;
+        scoreBoard.innerText = `Score: ${score} | High: ${highScore}`;
+        if (score % 10 === 0) obstacleSpeed += 0.5;
+      }
+    });
+  }
+
+  function updateBoosts() {
+    boosts.forEach((boost, i) => {
+      let x = parseInt(boost.style.left);
+      x -= obstacleSpeed;
+      boost.style.left = x + "px";
+
+      const boostRect = boost.getBoundingClientRect();
+      const ballRect = ball.getBoundingClientRect();
+
+      if (
+        boostRect.left < ballRect.right &&
+        boostRect.right > ballRect.left &&
+        boostRect.top < ballRect.bottom &&
+        boostRect.bottom > ballRect.top
+      ) {
+        velocity = -12; // boost jump
+        boost.remove();
+        boosts.splice(i, 1);
+      }
+
+      if (x < -30) {
+        boost.remove();
+        boosts.splice(i, 1);
+      }
+    });
+  }
+
+  function endGame() {
+    isGameOver = true;
+    gameOverText.style.display = "block";
+    if (score > highScore) {
+      highScore = score;
+      localStorage.setItem("highScore", highScore);
+    }
+    obstacles.forEach(obs => obs.remove());
+    boosts.forEach(boost => boost.remove());
+    obstacles = [];
+    boosts = [];
+  }
+
+  function resetGame() {
+    score = 0;
+    ballY = 200;
     velocity = 0;
+    isGameOver = false;
+    obstacleSpeed = 4;
+    scoreBoard.innerText = `Score: 0 | High: ${highScore}`;
+    gameOverText.style.display = "none";
   }
 
-  ball.style.top = ballY + "px";
-}
-
-function createObstacle() {
-  const obstacle = document.createElement("div");
-  obstacle.classList.add("obstacle");
-  obstacle.style.top = Math.floor(Math.random() * (gameArea.clientHeight - 80)) + "px";
-  obstacle.style.left = gameArea.clientWidth + "px";
-  gameArea.appendChild(obstacle);
-  obstacles.push(obstacle);
-}
-
-function createBoost() {
-  const boost = document.createElement("div");
-  boost.classList.add("obstacle");
-  boost.style.width = "30px";
-  boost.style.height = "30px";
-  boost.style.background = "#4caf50";
-  boost.style.borderRadius = "50%";
-  boost.style.top = Math.floor(Math.random() * (gameArea.clientHeight - 50)) + "px";
-  boost.style.left = gameArea.clientWidth + "px";
-  gameArea.appendChild(boost);
-  boosts.push(boost);
-}
-
-function updateObstacles() {
-  obstacles.forEach((obs, i) => {
-    let x = parseInt(obs.style.left);
-    x -= obstacleSpeed;
-    obs.style.left = x + "px";
-
-    const obsRect = obs.getBoundingClientRect();
-    const ballRect = ball.getBoundingClientRect();
-    if (
-      obsRect.left < ballRect.right &&
-      obsRect.right > ballRect.left &&
-      obsRect.top < ballRect.bottom &&
-      obsRect.bottom > ballRect.top
-    ) endGame();
-
-    if (x < -50) {
-      obs.remove();
-      obstacles.splice(i, 1);
-      score++;
-      scoreBoard.innerText = `Score: ${score} | High: ${highScore}`;
-      if (score % 10 === 0) obstacleSpeed += 0.5;
+  gameArea.addEventListener("click", () => {
+    if (isGameOver) {
+      resetGame();
+      return;
     }
+    velocity = -8;
   });
-}
 
-function updateBoosts() {
-  boosts.forEach((boost, i) => {
-    let x = parseInt(boost.style.left);
-    x -= obstacleSpeed;
-    boost.style.left = x + "px";
+  setInterval(() => {
+    if (!isGameOver) createObstacle();
+  }, 1500);
 
-    const boostRect = boost.getBoundingClientRect();
-    const ballRect = ball.getBoundingClientRect();
+  setInterval(() => {
+    if (!isGameOver) createBoost();
+  }, 5000);
 
-    if (
-      boostRect.left < ballRect.right &&
-      boostRect.right > ballRect.left &&
-      boostRect.top < ballRect.bottom &&
-      boostRect.bottom > ballRect.top
-    ) {
-      velocity = -12; // boost jump
-      boost.remove();
-      boosts.splice(i, 1);
-    }
-
-    if (x < -30) {
-      boost.remove();
-      boosts.splice(i, 1);
-    }
-  });
-}
-
-function endGame() {
-  isGameOver = true;
-  gameOverText.style.display = "block";
-  if (score > highScore) {
-    highScore = score;
-    localStorage.setItem("highScore", highScore);
+  function gameLoop() {
+    updateBall();
+    updateObstacles();
+    updateBoosts();
+    requestAnimationFrame(gameLoop);
   }
-  obstacles.forEach(obs => obs.remove());
-  boosts.forEach(boost => boost.remove());
-  obstacles = [];
-  boosts = [];
-}
 
-function resetGame() {
-  score = 0;
-  ballY = 200;
-  velocity = 0;
-  isGameOver = false;
-  obstacleSpeed = 4;
   scoreBoard.innerText = `Score: 0 | High: ${highScore}`;
-  gameOverText.style.display = "none";
-}
-
-gameArea.addEventListener("click", () => {
-  if (isGameOver) {
-    resetGame();
-    return;
-  }
-  velocity = -8;
-});
-
-setInterval(() => {
-  if (!isGameOver) createObstacle();
-}, 1500);
-
-setInterval(() => {
-  if (!isGameOver) createBoost();
-}, 5000);
-
-function gameLoop() {
-  updateBall();
-  updateObstacles();
-  updateBoosts();
-  requestAnimationFrame(gameLoop);
-}
-
-scoreBoard.innerText = `Score: 0 | High: ${highScore}`;
-gameLoop();
+  gameLoop();
+};
 </script>
